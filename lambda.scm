@@ -138,5 +138,148 @@
                                           (lambda (newl2 m2 s2)
                                             (col (cons newl1 newl2) (* m1 m2) (+ s1 s2))))))))))
 
+(define keep-looking
+  (lambda (a p lat)
+    (cond
+      ((number? p) (keep-looking a (pick p lat) lat))
+      (else (eq? a p)))))
 
-(evens-only*&co '(10 4 7 1 2 (3 4 8 9 1 2) 5 10 20) print-results)
+(define looking
+  (lambda (a lat)
+    (keep-looking a (pick 1 lat) lat)))
+
+(define shift
+  (lambda (pair)
+    (build (first (first pair))
+           (build (second (first pair))
+                  (second pair)))))
+
+(define align
+  (lambda (pora)
+    (cond
+      ((atom? pora) pora)
+      ((a-pair? (first pora))
+       (align (shift pora)))
+      (else
+        (build (first pora)
+               (align (second pora)))))))
+
+(define length*
+  (lambda (pora)
+    (cond
+      ((atom? pora) 1)
+      (else
+        (+ (length* (first pora))
+           (length* (second pora)))))))
+
+(define weight*
+  (lambda (pora)
+    (cond
+      ((atom? pora) 1)
+      (else
+        (+ (* (weight* (first pora)) 2)
+           (weight* (second pora)))))))
+
+(define shuffle
+  (lambda (pora)
+    (cond
+      ((atom? pora) pora)
+      ((a-pair? (first pora))
+       (shuffle (revpair pora)))
+      (else (build (first pora) (shuffle (second pora)))))))
+
+(define new-entry build)
+
+(define lookup-in-entry-help
+  (lambda (name names vals entry-f)
+    (cond
+      ((null? names) (entry-f name))
+      ((eq? (car names) name) (car vals))
+      (else (lookup-in-entry-help name (cdr names) (cdr vals) entry-f)))))
+
+
+(define lookup-in-entry
+  (lambda (name entry entry-f)
+    (lookup-in-entry-help name
+                          (first entry)
+                          (second entry)
+                          entry-f)))
+
+(define extend-table cons)
+
+(define lookup-in-table
+  (lambda (name table table-f)
+    (cond
+      ((null? table) (table-f name))
+      (else (lookup-in-entry name (car table)
+                             (lambda (name)
+                               (lookup-in-table name
+                                                (cdr table)
+                                                table-f)))))))
+
+(define expression-to-action
+  (lambda (e)
+    (cond
+      ((atom? e) (atom-to-action e))
+      (else (list-to-action e)))))
+
+(define atom-to-action
+  (lambda (e)
+    (cond
+      ((number? e) *const)
+      ((eq? e #t)  *const)
+      ((eq? e #f)  *const)
+      ((eq? e 'cons) *const)
+      ((eq? e 'car) *const)
+      ((eq? e 'cdr) *const)
+      ((eq? e 'null?) *const)
+      ((eq? e 'eq?) *const)
+      ((eq? e 'atom?) *const)
+      ((eq? e 'zero?) *const)
+      ((eq? e 'add1) *const)
+      ((eq? e 'sub1) *const)
+      ((eq? e 'number?) *const)
+      (else *identifier))))
+
+(define list-to-action
+  (lambda (e)
+    (cond
+      ((atom? (car e))
+       (cond
+         ((eq? (car e) 'quote) *quote)
+         ((eq? (car e) 'lambda) *lambda)
+         ((eq? (car e) 'cond) *cond)
+         else *application))
+      (else *application))))
+
+(define value
+  (lambda (e)
+    (meaning e ('()))))
+
+(define meaning
+  (lambda (e table)
+    ((expression-to-action e) e table)))
+
+(define *const
+  (lambda (e table)
+    (cond
+      ((number? e) e)
+      ((eq? e #t) #t)
+      ((eq? e #f) #f)
+      (else (build 'primitive e)))))
+
+(define *quote
+  (lambda (e table)
+    (text-of e)))
+
+(define text-of second)
+
+(define *identifier
+  (lambda (e table)
+    (lookup-in-table e table initial-table)))
+
+(define initial-table (lambda (name) (cons name '())))
+
+(define *lambda
+  (lambda (e table)
+    (build 'non-primitive (cons table (cdr e)))))

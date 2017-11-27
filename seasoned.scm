@@ -130,14 +130,54 @@
                         (letcc var (success a)) . b))))
 
 (define intersectall
-  (lambda (l)
+  (lambda (lset)
     (letcc hop
-           (letrec ((I (lambda (lset)
-                         (cond
-                           ((null? (car lset)) (hop '()))
-                           ((null? (cdr lset)) (car lset))
-                           (else
-                             (intersect (car lset) (I (cdr lset))))))))
+           (letrec
+             ((A (lambda (lset)
+                   (cond
+                     ((null? (car lset)) (hop '()))
+                     ((null? (cdr lset)) (car lset))
+                     (else (I (car lset) (A (cdr lset)))))))
+              (I (lambda (set1 set2)
+                   (letrec
+                     ((J (lambda (set1)
+                           (cond
+                             ((null? set1) '())
+                             ((member? (car set1) set2)
+                              (cons (car set1) (J (cdr set1))))
+                             (else (J (cdr set1)))))))
+                     (cond
+                       ((null? set2) (hop '()))
+                       (else (J set1)))))))
              (cond
-               ((null? l) '())
-               (else (I l)))))))
+               ((null? lset) '())
+               (else (A lset)))))))
+
+(define rember
+  (lambda (a lat)
+    (letrec
+      ((R (lambda (lat)
+          (cond
+            ((null? lat) '())
+            ((eq? (car lat) a) (cdr lat))
+            (else (cons (car lat) (R (cdr lat))))))))
+      (R lat))))
+
+(define rember-upto-last
+  (lambda (a lat)
+    (letcc skip
+           (letrec
+             ((R (lambda (lat)
+                   (cond
+                     ((null? lat) '())
+                     ((eq? (car lat) a)
+                      (skip (R (cdr lat))))
+                     (else (cons (car lat) (R (cdr lat))))))))
+             (R lat)))))
+
+(define leftmost
+  (lambda (l)
+    (cond
+      ((null? l) '())
+      ((atom? (car l)) (car l))
+      (else (leftmost (car l))))))

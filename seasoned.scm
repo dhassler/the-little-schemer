@@ -204,3 +204,14 @@
                            (lm (cdr l))))))))
             (lm l)))))
 
+
+(define rm
+  (lambda (a l oh)
+    (cond
+      ((null? l) (oh 'no))
+      ((atom? (car l))
+       (if (eq? (car l) a)
+         (cdr l)
+         (cons (car l) (rm a (cdr l) oh))))
+      (else
+        (letcc)

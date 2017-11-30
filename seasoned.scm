@@ -181,3 +181,26 @@
       ((null? l) '())
       ((atom? (car l)) (car l))
       (else (leftmost (car l))))))
+
+(define depth*
+  (lambda (l)
+    (cond
+      ((null? l) 1)
+      ((atom? (car l)) (depth* (cdr l)))
+      (else
+        (max (add1 (depth* (car l)))
+             (depth* (cdr l)))))))
+
+(define leftmost
+  (lambda (l)
+    (letcc skip
+           (letrec ((lm
+                      (lambda (l)
+                        (cond
+                          ((null? l) '())
+                          ((atom? (car l)) (skip (car l)))
+                          (else (let ()
+                           (lm (car l))
+                           (lm (cdr l))))))))
+            (lm l)))))
+

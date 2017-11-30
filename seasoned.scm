@@ -180,7 +180,11 @@
     (cond
       ((null? l) '())
       ((atom? (car l)) (car l))
-      (else (leftmost (car l))))))
+      (else
+        (let ((a (leftmost (car l))))
+          (cond
+            ((atom? a) a)
+            (else (leftmost (cdr l)))))))))
 
 (define depth*
   (lambda (l)
@@ -204,6 +208,23 @@
                            (lm (cdr l))))))))
             (lm l)))))
 
+(define rember1*
+  (lambda (a l)
+    (letrec
+      ((R (lambda (l)
+            (cond
+              ((null? l) '())
+              ((atom? (car l))
+               (cond
+                 ((eq? (car l) a) (cdr l))
+                 (else (cons (car l) (R (cdr l))))))
+              (else
+                (let ((RL (R (car l))))
+                  (cond
+                    ((eqlist? RL (car l))
+                     (cons (car l) (R (cdr l))))
+                    (else (cons RL (cdr l))))))))))
+      (R l))))
 
 (define rm
   (lambda (a l oh)
